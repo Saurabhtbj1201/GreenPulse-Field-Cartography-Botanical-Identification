@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="GreenPulse: Offline field cartography and botanical identification running on local open-weight models." />
+    <meta name="theme-color" content="#15803d" />
+    <title>GreenPulse: Offline Field Cartography & Botanical Analysis</title>
+
+    <!-- Professional Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="app" class="app-layout">
+      <!-- Top Navigation Bar -->
+      <header class="app-navbar">
+        <div class="navbar-brand">
+          <div class="brand-symbol">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              <path d="m9 12 2 2 4-4"/>
+            </svg>
+          </div>
+          <div class="brand-titles">
+            <span class="brand-title">GreenPulse</span>
+            <span class="brand-subtitle">Field Cartography & Botanical Identification</span>
+          </div>
+        </div>
+
+        <div class="navbar-telemetry">
+          <div class="telemetry-item">
+            <span class="telemetry-label">Runtime Mode</span>
+            <span class="telemetry-value active-edge">
+              <span class="indicator-dot"></span>
+              Local Edge (Offline Capable)
+            </span>
+          </div>
+          <div class="telemetry-divider"></div>
+          <div class="telemetry-item">
+            <span class="telemetry-label">Active Coordinates</span>
+            <span class="telemetry-value mono" id="header-coords">40.7850° N, 73.9682° W</span>
+          </div>
+          <div class="telemetry-divider"></div>
+          <div class="telemetry-item">
+            <span class="telemetry-label">Session Elapsed</span>
+            <span class="telemetry-value mono" id="session-timer">00:00:00</span>
+          </div>
+        </div>
+
+        <div class="navbar-actions">
+          <button id="btn-audio-toggle" class="btn-secondary btn-sm" title="Toggle audio briefing feedback">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+              <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+            </svg>
+            <span>Audio Feedback</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Main Application Container -->
+      <div class="workspace-grid">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar-nav">
+          <div class="nav-group-label">Navigation</div>
+          <nav class="nav-menu">
+            <button class="nav-link active" data-tab="routes-tab" id="tab-nav-routes">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
+              </svg>
+              <span>Field Routes</span>
+            </button>
+            <button class="nav-link" data-tab="map-tab" id="tab-nav-map">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/>
+                <line x1="9" y1="3" x2="9" y2="18"/>
+                <line x1="15" y1="6" x2="15" y2="21"/>
+              </svg>
+              <span>Map & Spatial</span>
+            </button>
+            <button class="nav-link" data-tab="camera-tab" id="tab-nav-camera">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                <circle cx="12" cy="13" r="4"/>
+              </svg>
+              <span>Visual Classification</span>
+            </button>
+            <button class="nav-link" data-tab="records-tab" id="tab-nav-records">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+              </svg>
+              <span>Cataloged Records</span>
+            </button>
+            <button class="nav-link" data-tab="developer-tab" id="tab-nav-developer">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+              <span>Developer Reference</span>
+            </button>
+          </nav>
+
+          <div class="system-status-box">
+            <div class="status-box-header">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="2" width="20" height="8" rx="2" ry="2"/>
+                <rect x="2" y="14" width="20" height="8" rx="2" ry="2"/>
+                <line x1="6" y1="6" x2="6.01" y2="6"/>
+                <line x1="6" y1="18" x2="6.01" y2="18"/>
+              </svg>
+              <span>System Status</span>
+            </div>
+            <div class="status-row">
+              <span>Local LLM:</span>
+              <strong class="mono text-success">Gemma 2 (Loaded)</strong>
+            </div>
+            <div class="status-row">
+              <span>Vision Model:</span>
+              <strong class="mono text-success">MobileNet ONNX</strong>
+            </div>
+            <div class="status-row">
+              <span>Tiles Cache:</span>
+              <strong class="mono">OSM Synced</strong>
+            </div>
+          </div>
+        </aside>
+
+        <!-- Main Workspace Area -->
+        <main class="workspace-main">
+          <!-- 1. FIELD ROUTES VIEW -->
+          <section id="routes-tab" class="tab-pane active">
+            <!-- Route Header Controls -->
+            <div class="panel-header">
+              <div>
+                <h1 class="panel-title">Outdoor Routes &amp; Botanical Checkpoints</h1>
+                <p class="panel-description">
+                  Structured hiking and field corridors generated using open-weight spatial reasoning. All waypoints are computed without external cloud telemetry.
+                </p>
+              </div>
+              <div class="header-button-group">
+                <button id="btn-recompute-route" class="btn-primary">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+                  </svg>
+                  <span>Recompute Route (Gemma 2)</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Route Summary Card -->
+            <div class="card route-detail-card">
+              <div class="route-meta-strip">
+                <div class="meta-tag" id="route-id-tag">ROUTE-NY-01</div>
+                <div class="meta-tag tag-outline" id="route-category-tag">Deciduous Canopy Survey</div>
+                <div class="meta-tag tag-outline" id="route-distance-tag">Distance: 1.62 km</div>
+                <div class="meta-tag tag-outline" id="route-duration-tag">Est. Walking Time: 28 min</div>
+              </div>
+
+              <h2 class="route-name" id="route-title">Ramble Hardwood &amp; Outcrop Survey</h2>
+              <p class="route-abstract" id="route-narrative">
+                This corridor passes through mixed mature hardwood stands, rocky terrain, and secondary growth understory. The objective is to record native fall foliage specimens and log structural waypoints without continuous mobile screen usage.
+              </p>
+
+              <!-- Technical Audio Briefing Bar -->
+              <div class="audio-control-strip">
+                <button id="btn-play-briefing" class="btn-secondary btn-sm" aria-label="Play route audio briefing">
+                  <svg id="briefing-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="5 3 19 12 5 21 5 3"/>
+                  </svg>
+                  <span id="briefing-label">Play Spoken Briefing (14s)</span>
+                </button>
+                <div class="audio-strip-info">
+                  <span class="mono-label">Audio Guidance Mode:</span>
+                  <span id="audio-status-text">Ready. Allows hands-free trail traversal.</span>
+                </div>
+              </div>
+
+              <!-- Waypoint Checklist Table -->
+              <div class="waypoints-table-wrap">
+                <div class="table-caption-row">
+                  <span class="table-title">Target Botanical &amp; Structural Waypoints</span>
+                  <span class="table-counter" id="completed-counter">1 of 3 Verified</span>
+                </div>
+                <table class="data-table" id="waypoints-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 48px;">Status</th>
+                      <th>Taxon / Target</th>
+                      <th>Classification Target</th>
+                      <th>Target Coordinates</th>
+                      <th>Verification Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="waypoints-table-body">
+                    <!-- Populated dynamically -->
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="card-footer-actions">
+                <button class="btn-secondary" id="btn-inspect-map">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/>
+                  </svg>
+                  <span>View on Spatial Map</span>
+                </button>
+                <button class="btn-primary" id="btn-open-scanner">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                  </svg>
+                  <span>Launch Visual Classifier</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Model Parameters Reference -->
+            <div class="card technical-specs-card">
+              <div class="specs-header">
+                <h3 class="specs-title">Model Specifications &amp; Inference Pipeline</h3>
+                <span class="spec-badge mono">Local Offline Pipeline</span>
+              </div>
+              <div class="specs-grid">
+                <div class="spec-entry">
+                  <span class="spec-key">Generation Model</span>
+                  <span class="spec-val mono">Gemma-2-9b-it (4-bit edge)</span>
+                </div>
+                <div class="spec-entry">
+                  <span class="spec-key">Vision Classifier</span>
+                  <span class="spec-val mono">MobileNetV2-Botanical (ONNX)</span>
+                </div>
+                <div class="spec-entry">
+                  <span class="spec-key">Spatial Data Source</span>
+                  <span class="spec-val mono">OpenStreetMap Vector Tiles</span>
+                </div>
+                <div class="spec-entry">
+                  <span class="spec-key">Network Dependency</span>
+                  <span class="spec-val text-success">Zero External API Calls</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 2. MAP & SPATIAL VIEW -->
+          <section id="map-tab" class="tab-pane">
+            <div class="panel-header">
+              <div>
+                <h1 class="panel-title">Spatial GIS &amp; Trail Navigation</h1>
+                <p class="panel-description">
+                  Real-time GPS track recording and waypoint projection. Tiles rendered via OpenStreetMap standard specifications.
+                </p>
+              </div>
+              <div class="header-button-group">
+                <button class="btn-secondary btn-sm" id="btn-locate-user">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                  <span>Locate Current Position</span>
+                </button>
+                <button class="btn-secondary btn-sm" id="btn-simulate-track">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="5 3 19 12 5 21 5 3"/>
+                  </svg>
+                  <span>Simulate Route Traversal</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Leaflet Container -->
+            <div class="card map-wrapper-card">
+              <div id="spatial-map" class="spatial-map-canvas"></div>
+              <div class="map-status-bar">
+                <div class="map-status-item">
+                  <span class="status-key">GIS Projection:</span>
+                  <span class="status-val mono">EPSG:3857 (Web Mercator)</span>
+                </div>
+                <div class="map-status-item">
+                  <span class="status-key">GPS Accuracy:</span>
+                  <span class="status-val mono text-success" id="gps-accuracy-display">3.2 meters</span>
+                </div>
+                <div class="map-status-item">
+                  <span class="status-key">Recorded Distance:</span>
+                  <span class="status-val mono" id="recorded-distance-display">1.62 km</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 3. VISUAL CLASSIFICATION VIEW -->
+          <section id="camera-tab" class="tab-pane">
+            <div class="panel-header">
+              <div>
+                <h1 class="panel-title">On-Device Visual Landmark Classifier</h1>
+                <p class="panel-description">
+                  Botanical specimen verification executed directly within the browser runtime using WebAssembly and ONNX. No photographs are uploaded to remote servers.
+                </p>
+              </div>
+            </div>
+
+            <div class="card camera-analyzer-card">
+              <div class="camera-stage">
+                <!-- Video Viewport -->
+                <div class="viewfinder-box" id="viewfinder-container">
+                  <video id="video-stream" autoplay playsinline muted></video>
+                  <canvas id="snapshot-canvas" class="hidden-element"></canvas>
+
+                  <!-- Bounding Box Reticle -->
+                  <div class="viewfinder-grid">
+                    <div class="grid-crosshair-center"></div>
+                    <div class="grid-bracket tl"></div>
+                    <div class="grid-bracket tr"></div>
+                    <div class="grid-bracket bl"></div>
+                    <div class="grid-bracket br"></div>
+                  </div>
+
+                  <!-- Fallback Overlay -->
+                  <div class="camera-standby-overlay" id="camera-standby">
+                    <div class="standby-content">
+                      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                        <circle cx="12" cy="13" r="4"/>
+                      </svg>
+                      <h4>Camera Stream Inactive</h4>
+                      <p>Initialize your device video capture stream or evaluate a benchmark field specimen image.</p>
+                      <button id="btn-start-stream" class="btn-primary btn-sm">
+                        <span>Initialize Device Camera</span>
+                      </button>
+                      <div class="benchmark-picker">
+                        <span class="picker-label">Benchmark Test Specimens:</span>
+                        <div class="benchmark-buttons">
+                          <button class="btn-benchmark" data-specimen="leaf">Acer saccharum (Maple)</button>
+                          <button class="btn-benchmark" data-specimen="bench">Trail Infrastructure</button>
+                          <button class="btn-benchmark" data-specimen="moss">Bryophyta (Tree Moss)</button>
+                          <button class="btn-benchmark" data-specimen="bark">Quercus alba (Oak Bark)</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Controls Strip -->
+                <div class="viewfinder-controls">
+                  <button id="btn-capture-frame" class="btn-primary">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="10"/>
+                    </svg>
+                    <span>Capture &amp; Classify Frame</span>
+                  </button>
+                  <label class="btn-secondary" style="cursor: pointer;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                      <polyline points="17 8 12 3 7 8"/>
+                      <line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    <span>Upload Local File</span>
+                    <input type="file" id="local-image-input" accept="image/*" class="hidden-element" />
+                  </label>
+                </div>
+              </div>
+
+              <!-- Telemetry Output Table -->
+              <div class="inference-report-card" id="inference-report">
+                <div class="report-header">
+                  <h4>Classification Diagnostics</h4>
+                  <span class="mono-badge">Inference Latency: <span id="metric-latency">36ms</span></span>
+                </div>
+                <div class="report-table-wrap">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Taxon / Class Label</th>
+                        <th>Softmax Probability</th>
+                        <th>Target Verification</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td class="mono font-semibold" id="res-label">Acer saccharum (Sugar Maple)</td>
+                        <td>
+                          <div class="probability-cell">
+                            <div class="probability-track">
+                              <div class="probability-fill" id="res-prob-fill" style="width: 96.4%;"></div>
+                            </div>
+                            <span class="mono" id="res-prob-text">0.964</span>
+                          </div>
+                        </td>
+                        <td>
+                          <span class="tag-status verified" id="res-status-tag">Verified Match</span>
+                        </td>
+                        <td>
+                          <button class="btn-secondary btn-sm" id="btn-save-record">
+                            <span>Save to Records</span>
+                          </button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 4. CATALOGED RECORDS VIEW -->
+          <section id="records-tab" class="tab-pane">
+            <div class="panel-header">
+              <div>
+                <h1 class="panel-title">Cataloged Botanical &amp; Infrastructure Records</h1>
+                <p class="panel-description">
+                  Local database of verified observations stored in client storage with cryptographic hashes and timestamp logs.
+                </p>
+              </div>
+              <div class="header-button-group">
+                <button class="btn-secondary btn-sm" id="btn-export-csv">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  <span>Export CSV Log</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="card records-card">
+              <table class="data-table" id="records-table">
+                <thead>
+                  <tr>
+                    <th>Record ID</th>
+                    <th>Scientific Name</th>
+                    <th>Taxonomic Division</th>
+                    <th>Probability</th>
+                    <th>Coordinates</th>
+                    <th>Timestamp</th>
+                  </tr>
+                </thead>
+                <tbody id="records-table-body">
+                  <!-- Populated dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- 5. DEVELOPER REFERENCE VIEW -->
+          <section id="developer-tab" class="tab-pane">
+            <div class="panel-header">
+              <div>
+                <h1 class="panel-title">Developer &amp; Project Documentation</h1>
+                <p class="panel-description">
+                  Technical specifications, architectural foundations, and author contact profiles.
+                </p>
+              </div>
+            </div>
+
+            <div class="card developer-profile-card">
+              <div class="profile-header-strip">
+                <img src="https://github.com/Saurabhtbj1201.png" alt="Saurabh Kumar" class="profile-portrait" />
+                <div class="profile-titles">
+                  <h2 class="developer-name">Saurabh Kumar</h2>
+                  <p class="developer-title">Full-Stack Web Developer &amp; Data Analyst</p>
+                  <p class="developer-org">Project Author: GreenPulse</p>
+                </div>
+              </div>
+
+              <div class="profile-summary-text">
+                <p>
+                  GreenPulse is developed as a focused open-source GIS and edge-intelligence application. The primary design goal is functional autonomy: routing, landmark indexing, and photographic validation operate on localized weights, preventing external network dependencies and eliminating user behavioral tracking on remote infrastructure.
+                </p>
+              </div>
+
+              <div class="developer-links-matrix">
+                <a href="https://github.com/Saurabhtbj1201" target="_blank" rel="noopener noreferrer" class="link-entry">
+                  <span class="link-label">GitHub Repository &amp; Profile</span>
+                  <span class="link-val mono">github.com/Saurabhtbj1201</span>
+                </a>
+                <a href="https://linkedin.com/in/saurabhtbj1201" target="_blank" rel="noopener noreferrer" class="link-entry">
+                  <span class="link-label">LinkedIn Profile</span>
+                  <span class="link-val mono">linkedin.com/in/saurabhtbj1201</span>
+                </a>
+                <a href="https://twitter.com/saurabhtbj1201" target="_blank" rel="noopener noreferrer" class="link-entry">
+                  <span class="link-label">Twitter / X</span>
+                  <span class="link-val mono">twitter.com/saurabhtbj1201</span>
+                </a>
+                <a href="https://gu-saurabh.site" target="_blank" rel="noopener noreferrer" class="link-entry">
+                  <span class="link-label">Portfolio Site</span>
+                  <span class="link-val mono">gu-saurabh.site</span>
+                </a>
+                <a href="https://www.resume.gu-saurabh.site" target="_blank" rel="noopener noreferrer" class="link-entry">
+                  <span class="link-label">Curriculum Vitae</span>
+                  <span class="link-val mono">resume.gu-saurabh.site</span>
+                </a>
+                <a href="https://wa.me/9798024301" target="_blank" rel="noopener noreferrer" class="link-entry">
+                  <span class="link-label">Direct Contact (WhatsApp)</span>
+                  <span class="link-val mono">+91 9798024301</span>
+                </a>
+              </div>
+            </div>
+          </section>
+        </main>
+      </div>
+
+      <!-- Toast Feedback Bar -->
+      <div id="status-toast" class="status-toast"></div>
+    </div>
+
+    <!-- Application Script -->
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
